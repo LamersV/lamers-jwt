@@ -34,13 +34,13 @@ import { sign, verify, decode } from '@lamersv/jwt';
 const token = sign(
   { userId: 123, role: 'admin' },
   'my_super_secret_key',
-  { expiresIn: '1h', notBefore: '10s', audience: 'api', issuer: 'sieg-ad', subject: 'access' }
+  { expiresIn: '1h', notBefore: '10s', audience: 'api', issuer: 'lamersv', subject: 'access' }
 );
 
 // 2) Verify & return payload (signature and claims are validated)
 const payload = verify(token, 'my_super_secret_key', {
   audience: 'api',
-  issuer: 'sieg-ad',
+  issuer: 'lamersv',
   subject: 'access',
   algorithms: ['HS256'],      // optional: restrict accepted algorithms
   clockTolerance: 5           // optional: seconds of tolerance
@@ -85,7 +85,7 @@ const data = verify(jwt, publicKey, { algorithms: ['RS256'] });
 
 - **Verification constraints**  
   ```ts
-  verify(token, 'secret', { audience: 'api', issuer: 'sieg-ad', subject: 'auth', algorithms: ['HS256'] });
+  verify(token, 'secret', { audience: 'api', issuer: 'lamersv', subject: 'auth', algorithms: ['HS256'] });
   ```
 
 ## Error handling

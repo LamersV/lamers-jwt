@@ -34,13 +34,13 @@ import { sign, verify, decode } from '@lamersv/jwt';
 const token = sign(
   { userId: 123, role: 'admin' },
   'minha_chave_super_secreta',
-  { expiresIn: '1h', notBefore: '10s', audience: 'api', issuer: 'sieg-ad', subject: 'acesso' }
+  { expiresIn: '1h', notBefore: '10s', audience: 'api', issuer: 'lamersv', subject: 'acesso' }
 );
 
 // 2) Verificar e obter o payload (valida assinatura e claims)
 const payload = verify(token, 'minha_chave_super_secreta', {
   audience: 'api',
-  issuer: 'sieg-ad',
+  issuer: 'lamersv',
   subject: 'acesso',
   algorithms: ['HS256'],              // opcional: restringe algoritmos aceitos
   clockTolerance: 5                   // tolerância em segundos (opcional)
@@ -85,7 +85,7 @@ const data = verify(jwt, publicKey, { algorithms: ['RS256'] });
 
 - **Restrições de verificação**  
   ```ts
-  verify(token, 'secret', { audience: 'api', issuer: 'sieg-ad', subject: 'auth', algorithms: ['HS256'] });
+  verify(token, 'secret', { audience: 'api', issuer: 'lamersv', subject: 'auth', algorithms: ['HS256'] });
   ```
 
 ## Tratamento de erros
