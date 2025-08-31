@@ -1,83 +1,131 @@
-# SIEG-AD/JWT
+# @lamersv/jwt
 
-Uma biblioteca minimalista e segura para criar, verificar e decodificar JWTs usando apenas módulos nativos do Node.js. Sem dependências externas.
+Biblioteca TypeScript para **JSON Web Tokens (JWT)** com API direta para `sign`, `verify` e `decode`. Suporta **HS256** (HMAC) e **RS256** (RSA) e aceita *claims* e metadados padrão (exp, nbf, iat, aud, iss, sub), além de validações como tolerância de relógio e restrição de algoritmos. O tempo (`expiresIn`, `notBefore`) pode ser informado em **segundos** ou com sufixo (`"10s"`, `"5m"`, `"2h"`, `"7d"`, `"2w"`). Os erros são padronizados via `AuthError` do pacote `@lamersv/error`.
 
-## ✨ Destaques
+## Instalação
 
-- 🔒 Suporte aos algoritmos HS256 (HMAC) e RS256 (RSA)
-- ⚡ Sem dependências externas
-- 📦 Ideal para projetos TypeScript ou JavaScript
-- 🗝️ Suporte a chave pública/privada (RS256)
-- ⏱️ Suporte a `exp`, `nbf`, `iat`, `aud`, `iss`, `sub`
-- 🪶 Leve, auditável e fácil de manter
+Publicado no GitHub Packages sob o escopo `@lamersv`. Configure a autenticação no `.npmrc` do seu projeto:
 
-## 📦 Instalação
+```
+@lamersv:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
 
-```bash
+Depois, instale com seu gerenciador de pacotes:
+
+```
 npm install @lamersv/jwt
 ```
 
-## 🚀 Uso
-
-### Geração de token
-
-```ts
-import { sign } from '@lamersv/jwt';
-
-const payload = { userId: 123 };
-
-const token = sign(payload, privateKey, {
-  algorithm: 'RS256',
-  expiresIn: '1h',           // Também aceita número (segundos)
-  issuer: 'sua-api',
-  audience: 'seus-clientes',
-  subject: '123',
-  keyid: 'main-key'
-});
+```
+yarn add @lamersv/jwt
 ```
 
-### Verificação de token
+```
+pnpm add @lamersv/jwt
+```
+
+## Uso básico
+
+```ts
+import { sign, verify, decode } from '@lamersv/jwt';
+
+// 1) Assinar (HS256 por padrão)
+const token = sign(
+  { userId: 123, role: 'admin' },
+  'minha_chave_super_secreta',
+  { expiresIn: '1h', notBefore: '10s', audience: 'api', issuer: 'sieg-ad', subject: 'acesso' }
+);
+
+// 2) Verificar e obter o payload (valida assinatura e claims)
+const payload = verify(token, 'minha_chave_super_secreta', {
+  audience: 'api',
+  issuer: 'sieg-ad',
+  subject: 'acesso',
+  algorithms: ['HS256'],              // opcional: restringe algoritmos aceitos
+  clockTolerance: 5                   // tolerância em segundos (opcional)
+});
+
+// 3) Decodificar sem verificar assinatura (apenas leitura do payload)
+const raw = decode(token);            // NÃO valida assinatura — use verify() quando segurança for necessária
+```
+
+### RS256 (chave RSA)
+
+```ts
+import { sign, verify } from '@lamersv/jwt';
+
+const privateKey = `-----BEGIN PRIVATE KEY-----
+...chave privada PEM...
+-----END PRIVATE KEY-----`;
+
+const publicKey = `-----BEGIN PUBLIC KEY-----
+...chave pública PEM...
+-----END PUBLIC KEY-----`;
+
+// Assinar com RS256
+const jwt = sign({ uid: 'abc' }, privateKey, { algorithm: 'RS256', keyid: 'kid-01', expiresIn: '2h' });
+
+// Verificar com a chave pública
+const data = verify(jwt, publicKey, { algorithms: ['RS256'] });
+```
+
+## Exemplos práticos
+
+- **Controle fino de expiração e ativação**  
+  Use números (segundos) ou strings com sufixo: `"30s"`, `"15m"`, `"12h"`, `"7d"`, `"2w"`.
+  ```ts
+  sign({ id: 1 }, 'secret', { expiresIn: 3600, notBefore: '30s' });
+  ```
+
+- **Cabeçalho com `kid` (Key ID)**  
+  ```ts
+  sign({ id: 1 }, privateKey, { algorithm: 'RS256', keyid: 'kid-prod-2025' });
+  ```
+
+- **Restrições de verificação**  
+  ```ts
+  verify(token, 'secret', { audience: 'api', issuer: 'sieg-ad', subject: 'auth', algorithms: ['HS256'] });
+  ```
+
+## Tratamento de erros
+
+As funções lançam `AuthError` (de `@lamersv/error`) com mensagens claras para formato inválido, token expirado/inativo, emissor/audiência/assunto incorretos, ou algoritmo não suportado.
 
 ```ts
 import { verify } from '@lamersv/jwt';
+import { AuthError } from '@lamersv/error';
 
-const decoded = verify(token, publicKey, {
-  issuer: 'sua-api',
-  audience: 'seus-clientes',
-  algorithms: ['RS256']
-});
+try {
+  verify('token.invalido', 'secret');
+} 
+catch (e) {
+  if (e instanceof AuthError) {
+    console.error(e.message);
+  } 
+  else {
+    console.error('Erro inesperado', e);
+  }
+}
 ```
 
-### Decodificação sem validação
+## Mapa de exports
 
-```ts
-import { decode } from '@lamersv/jwt';
+O pacote expõe apenas a entrada principal:
 
-const data = decode(token);
+```json
+{
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  }
+}
 ```
 
-## 🔧 Algoritmos Suportados
+## Licença
 
-- `HS256` – Assinatura com segredo simétrico (HMAC)
-- `RS256` – Assinatura com chave privada RSA e verificação com chave pública
-
-## ⏳ Formatos aceitos para `expiresIn` e `notBefore`
-
-Você pode usar strings como:
-
-- `'10s'` – 10 segundos
-- `'15m'` – 15 minutos
-- `'2h'` – 2 horas
-- `'1d'` – 1 dia
-
-Ou fornecer número em segundos diretamente.
-
-## 🛡️ Segurança
-
-- Toda a criptografia é feita com `crypto` do Node.js
-- Nenhuma dependência externa
-- Totalmente auditável e leve
-
-## 📜 Licença
-
-Este projeto está licenciado sob a licença MIT. Veja [LICENSE](./LICENSE) para mais detalhes.
+MIT. Consulte o arquivo de licença no repositório oficial. [LICENSE](./LICENSE)
